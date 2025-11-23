@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-purple-600">
+
+    <div class="w-full max-w-md bg-white/30 backdrop-blur-lg p-8 shadow-2xl rounded-2xl border border-white/20">
+        <h1 class="text-3xl font-bold text-center text-white drop-shadow-md">Welcome Back</h1>
+
+        <!-- Error message container (Initially hidden) -->
+        <div id="error-message" class="mt-4 p-3 text-red-600 bg-red-100 border border-red-400 rounded-md text-center font-semibold hidden">
+        </div>
+
+        <form id="login-form" class="mt-6 space-y-5">
+            <div>
+                <label for="email" class="block text-white text-lg font-medium">Email</label>
+                <input type="email" id="email" name="email" required
+                    class="w-full p-3 border border-white/30 rounded-lg bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+                <p id="email-error" class="text-red-400 text-sm mt-1 hidden">Please enter a valid email address.</p>
+            </div>
+
+            <div>
+                <label for="password" class="block text-white text-lg font-medium">Password</label>
+                <input type="password" id="password" name="password" required
+                    class="w-full p-3 border border-white/30 rounded-lg bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+                <p id="password-error" class="text-red-400 text-sm mt-1 hidden">Password must be at least 8 characters.</p>
+            </div>
+
+            <button type="submit"
+                class="w-full py-3 px-6 bg-gradient-to-r from-blue-600 to-purple-700 text-white font-bold rounded-lg hover:opacity-90 transform transition hover:scale-105 shadow-lg">
+                Login
+            </button>
+        </form>
+
+        <div class="mt-4 text-center">
+            <a href="/forgot-password" class="text-yellow-300 font-semibold hover:underline transition-all">
+                Forgot password?
+            </a>
+        </div>
+
+        <div class="mt-2 text-center">
+            <p class="text-white text-lg">
+                Don't have an account? 
+                <a href="/signup" class="text-yellow-300 font-semibold hover:underline transition-all">Sign up</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            $("#login-form").submit(function (e) {
+                e.preventDefault(); // Prevent full-page reload
+
+                let isValid = true;
+                const email = $("#email").val().trim();
+                const password = $("#password").val().trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+                // Email validation
+                if (!emailRegex.test(email)) {
+                    $("#email-error").removeClass("hidden");
+                    isValid = false;
+                } else {
+                    $("#email-error").addClass("hidden");
+                }
+
+                // Password validation
+                if (password.length < 8) {
+                    $("#password-error").removeClass("hidden");
+                    isValid = false;
+                } else {
+                    $("#password-error").addClass("hidden");
+                }
+
+                if (!isValid) {
+                    return;
+                }
+
+                // Send AJAX request to login API
+                $.ajax({
+                    url: "/login",
+                    type: "POST",
+                    contentType: "application/x-www-form-urlencoded",
+                    data: { email: email, password: password },
+                    success: function (response) {
+                        window.location.href = "/welcome"; // Redirect on success
+                    },
+                    error: function (xhr) {
+                        let errorMsg = "Invalid credentials. Please try again.";
+                        if (xhr.status === 401) {
+                            errorMsg = "Invalid credentials. Please try again.";
+                        }
+                        $("#error-message").text(errorMsg).removeClass("hidden"); // Show error
+                    }
+                });
+            });
+
+            // Real-time validation
+            $("#email").on("input", function () {
+                const email = $(this).val().trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    $("#email-error").removeClass("hidden");
+                } else {
+                    $("#email-error").addClass("hidden");
+                }
+            });
+
+            $("#password").on("input", function () {
+                const password = $(this).val().trim();
+                if (password.length < 8) {
+                    $("#password-error").removeClass("hidden");
+                } else {
+                    $("#password-error").addClass("hidden");
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>

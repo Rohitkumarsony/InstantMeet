@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP | Premium Experience</title>
+    <style>
+        /* Fonts & Base Styles */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to right, #000428, #004e92);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+        }
+
+        /* Container */
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #ccc;
+        }
+
+        /* Input Fields */
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Error Message */
+        .error-message {
+            color: red;
+            font-size: 14px;
+            display: none;
+            margin-bottom: 10px;
+        }
+
+        /* Buttons */
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: linear-gradient(to right, #ff512f, #dd2476);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s ease;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            background: linear-gradient(to right, #ff9966, #ff5e62);
+        }
+
+        /* Resend OTP Link */
+        .resend-link {
+            display: block;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #ff9966;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .resend-link:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Verify OTP</h1>
+
+        <form id="otpForm">
+            <input type="hidden" id="email" name="email" value="{{ email }}">
+            <label for="otp">Enter OTP</label>
+            <input type="text" id="otp" name="otp" required placeholder="Enter 6-digit OTP" maxlength="6">
+            <p id="error-message" class="error-message"></p> <!-- Error message display -->
+            <button type="submit" id="verifyBtn" disabled>Verify OTP</button>
+        </form>
+
+        <a href="javascript:void(0)" class="resend-link" onclick="resendOTP()">Resend OTP</a>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const otpInput = document.getElementById("otp");
+            const emailInput = document.getElementById("email");
+            const errorMessage = document.getElementById("error-message");
+            const verifyBtn = document.getElementById("verifyBtn");
+        
+            // Enable button only if OTP is 6 digits
+            otpInput.addEventListener("input", function () {
+                if (otpInput.value.length === 6) {
+                    verifyBtn.disabled = false;
+                    validateOTP(); // Auto validate OTP when 6 digits entered
+                } else {
+                    verifyBtn.disabled = true;
+                    errorMessage.style.display = "none";
+                }
+            });
+        
+            // Function to validate OTP via AJAX
+            function validateOTP() {
+                const otp = otpInput.value.trim();
+                const email = emailInput.value.trim();
+        
+                if (!email || !otp) {
+                    errorMessage.innerText = "Email and OTP are required!";
+                    errorMessage.style.display = "block";
+                    return;
+                }
+        
+                // Using FormData to send as multipart/form-data
+                const formData = new FormData();
+                formData.append("email", email);
+                formData.append("otp", otp);
+        
+                fetch("/verify-otp", {
+                    method: "POST",
+                    body: formData // Send as form-data
+                })
+                .then(response => response.text()) // Expect HTML response
+                .then(html => {
+                    if (html.includes("Invalid OTP")) {
+                        // If response contains error message, show it
+                        errorMessage.innerText = "Invalid OTP. Please try again.";
+                        errorMessage.style.display = "block";
+                        verifyBtn.disabled = true;
+                    } else {
+                        // If OTP is correct, redirect to login page
+                        window.location.href = "/login";
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    errorMessage.innerText = "Something went wrong. Please try again.";
+                    errorMessage.style.display = "block";
+                    verifyBtn.disabled = true;
+                });
+            }
+        
+            // Handle manual form submission
+            document.getElementById("otpForm").addEventListener("submit", function(event) {
+                event.preventDefault();
+                validateOTP();
+            });
+        });
+                
+        // Function to resend OTP via AJAX
+        function resendOTP() {
+            const email = document.getElementById("email").value;
+            fetch("/resend-otp", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || "OTP Sent!");
+            })
+            .catch(error => {
+                alert("Failed to resend OTP. Please try again.");
+            });
+        }
+    </script>
+
+</body>
+</html>

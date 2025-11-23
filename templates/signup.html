@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        function validateName(input) {
+            const nameRegex = /^[A-Za-z]+$/;
+            if (!nameRegex.test(input.value)) {
+                input.setCustomValidity("Only alphabets are allowed (no spaces). Use valid characters.");
+            } else {
+                input.setCustomValidity("");
+            }
+        }
+
+        function validateEmail(input) {
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailRegex.test(input.value)) {
+                input.setCustomValidity("Enter a valid email.");
+            } else {
+                input.setCustomValidity("");
+            }
+        }
+
+        function checkEmailExists() {
+            let emailInput = document.getElementById("email");
+            let email = emailInput.value.trim();
+            let errorDiv = document.getElementById("email-error");
+
+            if (email.length > 0) {
+                fetch(`/check-email?email=${encodeURIComponent(email)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.exists) {
+                            emailInput.setCustomValidity("Email already registered.");
+                            errorDiv.textContent = "Email already registered.";
+                            errorDiv.classList.remove("hidden");
+                        } else {
+                            emailInput.setCustomValidity("");
+                            errorDiv.classList.add("hidden");
+                        }
+                    })
+                    .catch(error => console.error("Error checking email:", error));
+            }
+        }
+
+        function validatePassword() {
+            const passwordInput = document.getElementById("password");
+            const passwordStrength = document.getElementById("password-strength");
+            const password = passwordInput.value;
+            
+            const lengthRequirement = /.{8,}/;
+            const uppercaseRequirement = /[A-Z]/;
+            const lowercaseRequirement = /[a-z]/;
+            const numberRequirement = /[0-9]/;
+            const specialCharRequirement = /[!@#$%^&*(),.?":{}|<>]/;
+
+            let strengthMessage = "";
+            let strengthClass = "text-red-500";
+            let valid = true;
+
+            if (!lengthRequirement.test(password)) {
+                strengthMessage += "At least 8 characters. ";
+                valid = false;
+            }
+            if (!uppercaseRequirement.test(password)) {
+                strengthMessage += "Include at least 1 uppercase letter. ";
+                valid = false;
+            }
+            if (!lowercaseRequirement.test(password)) {
+                strengthMessage += "Include at least 1 lowercase letter. ";
+                valid = false;
+            }
+            if (!numberRequirement.test(password)) {
+                strengthMessage += "Include at least 1 number. ";
+                valid = false;
+            }
+            if (!specialCharRequirement.test(password)) {
+                strengthMessage += "Include at least 1 special character. ";
+                valid = false;
+            }
+
+            if (valid) {
+                strengthMessage = "Strong password!";
+                strengthClass = "text-green-500";
+                passwordInput.setCustomValidity("");
+            } else {
+                passwordInput.setCustomValidity("Password does not meet requirements.");
+            }
+
+            passwordStrength.textContent = strengthMessage;
+            passwordStrength.className = strengthClass;
+        }
+
+        function validateConfirmPassword() {
+            const passwordInput = document.getElementById("password").value;
+            const confirmPasswordInput = document.getElementById("confirm_password");
+            
+            if (confirmPasswordInput.value !== passwordInput) {
+                confirmPasswordInput.setCustomValidity("Passwords do not match.");
+            } else {
+                confirmPasswordInput.setCustomValidity("");
+            }
+        }
+    </script>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-purple-600">
+    <div class="w-full max-w-md bg-white/30 backdrop-blur-lg p-8 shadow-2xl rounded-2xl border border-white/20">
+        <h1 class="text-3xl font-bold text-center text-white drop-shadow-md">Create an Account</h1>
+        <form method="post" action="/signup" class="mt-6 space-y-5">
+            <div>
+                <label class="block text-white text-lg font-medium">First Name</label>
+                <input type="text" id="firstname" name="firstname" required oninput="validateName(this)" class="w-full p-3 border rounded-lg bg-white/10 text-white">
+            </div>
+
+            <div>
+                <label class="block text-white text-lg font-medium">Last Name</label>
+                <input type="text" id="lastname" name="lastname" required oninput="validateName(this)" class="w-full p-3 border rounded-lg bg-white/10 text-white">
+            </div>
+
+            <div>
+                <label class="block text-white text-lg font-medium">Email</label>
+                <input type="email" id="email" name="email" required oninput="validateEmail(this)" onblur="checkEmailExists()" class="w-full p-3 border rounded-lg bg-white/10 text-white">
+                <p id="email-error" class="text-red-500 mt-1 hidden"></p>
+            </div>
+
+            <div>
+                <label class="block text-white text-lg font-medium">Password</label>
+                <input type="password" id="password" name="password" required oninput="validatePassword()" class="w-full p-3 border rounded-lg bg-white/10 text-white">
+                <p id="password-strength" class="mt-1 text-sm"></p>
+            </div>
+
+            <div>
+                <label class="block text-white text-lg font-medium">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required oninput="validateConfirmPassword()" class="w-full p-3 border rounded-lg bg-white/10 text-white">
+            </div>
+
+            <button type="submit" class="w-full py-3 px-6 bg-gradient-to-r from-blue-600 to-purple-700 text-white font-bold rounded-lg hover:opacity-90 transition">Sign Up</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Link Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        .meeting-link {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            word-break: break-all;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .hidden {
+            display: none;
+        }
+        #connectionStatus {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .copy-button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .copy-button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome, {{ user_email }}</h1>
+    <!-- Logout Button -->
+    <form action="/logout" method="get">
+        <button type="submit">Logout</button>
+    </form>
+    <div id="connectionStatus" class="status error">Disconnected</div>
+    
+    <div class="container">
+        <h1>Meeting Link Generator</h1>
+        <button id="createLink" class="button" disabled>Create New Meeting</button>
+        
+        <div id="meetingLinkContainer" class="meeting-link hidden">
+            <span id="meetingLink"></span>
+            <button id="copyLink" class="copy-button">Copy Link</button>
+        </div>
+
+        <div id="status" class="status hidden"></div>
+
+        <div style="margin-top: 20px;">
+            <h2>Join Meeting</h2>
+            <input type="text" id="linkInput" placeholder="Paste meeting link here" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+            <button id="joinMeeting" class="button" disabled>Join Meeting</button>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+        const serverUrl = 'ws://localhost:8000/ws';
+        
+        window.onload = () => {
+            const savedLink = localStorage.getItem('meetingLink');
+            if (savedLink) {
+                displayMeetingLink(savedLink);
+                enableButtons();
+                updateConnectionStatus(true);
+            }
+            connectWebSocket();
+        };
+        
+        function connectWebSocket() {
+            ws = new WebSocket(serverUrl);
+        
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                updateConnectionStatus(true);
+                enableButtons();
+                reconnectAttempts = 0;
+            };
+        
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+        
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                updateConnectionStatus(false);
+                disableButtons();
+        
+                if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                    reconnectAttempts++;
+                    setTimeout(connectWebSocket, 3000 * reconnectAttempts);
+                }
+            };
+        
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                updateStatus('Connection error', 'error');
+            };
+        }
+        
+        function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'create_link_response':
+                    if (data.status === 'success') {
+                        displayMeetingLink(data.meeting_link);
+                        updateStatus('Meeting link created successfully!', 'success');
+                    } else {
+                        updateStatus('Error creating meeting link', 'error');
+                    }
+                    break;
+        
+                case 'validate_link_response':
+                    if (data.status === 'success' && data.valid) {
+                        updateStatus('Joining meeting...', 'success');
+                        window.location.href = `/meeting?link=${encodeURIComponent(data.meeting_link)}`;
+                    } else {
+                        updateStatus(data.message || 'Invalid meeting link', 'error');
+                    }
+                    break;
+        
+                case 'error':
+                    updateStatus(data.message, 'error');
+                    break;
+        
+                default:
+                    updateStatus('Unknown response from server', 'error');
+            }
+        }
+        
+        function updateConnectionStatus(connected) {
+            const statusDiv = document.getElementById('connectionStatus');
+            if (statusDiv) {
+                statusDiv.textContent = connected ? 'Connected' : 'Disconnected';
+                statusDiv.className = `status ${connected ? 'success' : 'error'}`;
+            }
+        }
+        
+        function enableButtons() {
+            const createBtn = document.getElementById('createLink');
+            const joinBtn = document.getElementById('joinMeeting');
+            if (createBtn) createBtn.disabled = false;
+            if (joinBtn) joinBtn.disabled = false;
+        }
+        
+        function disableButtons() {
+            const createBtn = document.getElementById('createLink');
+            const joinBtn = document.getElementById('joinMeeting');
+            if (createBtn) createBtn.disabled = true;
+            if (joinBtn) joinBtn.disabled = true;
+        }
+        
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            if (statusDiv) {
+                statusDiv.textContent = message;
+                statusDiv.className = `status ${type}`;
+                statusDiv.classList.remove('hidden');
+            }
+        }
+        
+        function displayMeetingLink(link) {
+            const container = document.getElementById('meetingLinkContainer');
+            const linkElement = document.getElementById('meetingLink');
+            if (container && linkElement) {
+                linkElement.textContent = link;
+                container.classList.remove('hidden');
+                localStorage.setItem('meetingLink', link);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const createLinkBtn = document.getElementById('createLink');
+            const joinMeetingBtn = document.getElementById('joinMeeting');
+            const copyLinkBtn = document.getElementById('copyLink');
+        
+            if (createLinkBtn) {
+                createLinkBtn.addEventListener('click', () => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'create_link' }));
+                    } else {
+                        updateStatus('Not connected to server', 'error');
+                    }
+                });
+            }
+        
+            if (joinMeetingBtn) {
+                joinMeetingBtn.addEventListener('click', () => {
+                    const linkInput = document.getElementById('linkInput');
+                    if (!linkInput) return;
+        
+                    const link = linkInput.value.trim();
+                    if (!link) {
+                        updateStatus('Please enter a meeting link', 'error');
+                        return;
+                    }
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'validate_link', link }));
+                    } else {
+                        updateStatus('Not connected to server', 'error');
+                    }
+                });
+            }
+        
+            if (copyLinkBtn) {
+                copyLinkBtn.addEventListener('click', () => {
+                    const link = document.getElementById('meetingLink')?.textContent;
+                    if (!link) return;
+        
+                    navigator.clipboard.writeText(link).then(() => {
+                        updateStatus('Link copied to clipboard!', 'success');
+                    }).catch(() => {
+                        updateStatus('Failed to copy link', 'error');
+                    });
+                });
+            }
+        });
+        
+    </script>
+</body>
+</html>
+
