@@ -93,7 +93,7 @@ InstantMeet/
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/instantmeet.git
+git clone https://github.com/Rohitkumarsony/InstantMeet.git
 cd instantmeet
 ```
 
