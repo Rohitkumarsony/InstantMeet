@@ -93,34 +93,71 @@ InstantMeet/
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/Rohitkumarsony/InstantMeet.git
+git clone https://github.com/yourusername/instantmeet.git
 cd instantmeet
 ```
 
-2. Install required dependencies:
+2. Create a virtual environment:
+```bash
+python3 -m venv env
+```
+
+3. Activate the virtual environment:
+
+**On Linux/macOS:**
+```bash
+source env/bin/activate
+```
+
+**On Windows:**
+```bash
+env\Scripts\activate
+```
+
+4. Create a `.env` file in the project root:
+```bash
+# Create .env file
+touch .env
+```
+
+Add the following configuration to your `.env` file:
+```env
+DATABASE_URL=sqlite:///./link.db
+SECRET_KEY=your-secret-key-here
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+```
+
+5. Install required dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Run the application:
+6. Run the application:
+
+**Option 1: Using Python directly**
 ```bash
 uvicorn main:app --reload
 ```
-Option: Using Docker directly
-```
-# 1. Build the image
+
+**Option 2: Using Docker**
+```bash
+# Build the image
 docker build -t instantmeet .
 
-# 2. Run the container
+# Run the container
 docker run -d -p 8000:8000 --name instantmeet_app instantmeet
 
-# 3. Stop the container
+# Stop the container
 docker stop instantmeet_app
 
-# 4. Remove the container
+# Remove the container
 docker rm instantmeet_app
 ```
-5. Open your browser and navigate to:
+
+7. Open your browser and navigate to:
 ```
 http://localhost:8000
 ```
